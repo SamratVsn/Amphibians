@@ -5,29 +5,50 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.amphibians.R
+import com.example.amphibians.model.Amphibian
 
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier,
+    amphibianUiState: AmphibianUiState,
     retryAction: () -> Unit,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ){
-    LoadingScreen(modifier = modifier.fillMaxSize())
-    AmphibianCard(modifier, contentPadding)
-    ErrorScreen(retryAction, modifier = modifier.fillMaxSize())
+    when (amphibianUiState) {
+        is AmphibianUiState.Loading -> LoadingScreen(modifier.size(200.dp))
+        is AmphibianUiState.Success ->
+            AmphibiansListScreen(
+                amphibians = amphibianUiState.amphibians,
+                modifier = modifier
+                    .padding( start = 16.dp, top = 16.dp, end = 16.dp),
+                contentPadding = contentPadding
+            )
+        else -> ErrorScreen(retryAction, modifier)
+    }
 }
-
 @Composable
 fun LoadingScreen(
     modifier: Modifier = Modifier
@@ -42,8 +63,7 @@ fun LoadingScreen(
 @Composable
 fun ErrorScreen(
     retryAction: () -> Unit,
-    modifier: Modifier = Modifier
-){
+    modifier: Modifier = Modifier){
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.Center,
@@ -61,8 +81,60 @@ fun ErrorScreen(
 
 @Composable
 fun AmphibianCard(
+    amphibian : Amphibian,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
 ){
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp)
+    ){
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = stringResource(R.string.amphibian_title, amphibian.name, amphibian.type),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Start
+            )
+            AsyncImage(
+                modifier = Modifier.fillMaxWidth(),
+                model = ImageRequest.Builder(context = LocalContext.current)
+                    .data(amphibian.imgSrc)
+                    .crossfade(true)
+                    .build(),
+                placeholder = painterResource(R.drawable.loading_img),
+                contentDescription = null,
+                contentScale = ContentScale.FillWidth,
+                error = painterResource(id = R.drawable.ic_broken_image),
+            )
+            Text(
+                text = amphibian.description,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Justify,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
 
+@Composable
+private fun AmphibiansListScreen(
+    amphibians: List<Amphibian>,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        items(
+            items = amphibians,
+            key = { amphibian -> amphibian.name }
+        ) { amphibian ->
+            AmphibianCard(amphibian = amphibian, modifier = Modifier.fillMaxSize())
+        }
+    }
 }
